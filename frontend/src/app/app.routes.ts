@@ -1,8 +1,8 @@
 import { Routes } from '@angular/router';
-import { LoginComponent } from './features/login/login.component';
-import { ProductsComponent } from './features/products/products.component';
-import { DashboardComponent } from './features/dashboard/dashboard.component';
-import { NotFoundComponent } from './features/not-found/not-found.component';
+import { LoginComponent } from './features/login/login';
+import { ProductsComponent } from './features/products/products';
+import { DashboardComponent } from './features/dashboard/dashboard';
+import { NotFoundComponent } from './features/not-found/not-found';
 
 export const routes: Routes = [
   { path: '', redirectTo: '/login', pathMatch: 'full' },

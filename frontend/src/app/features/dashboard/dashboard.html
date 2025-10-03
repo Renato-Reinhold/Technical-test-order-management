@@ -1,1 +1,208 @@
-<p>dashboard works!</p>
+<div class="min-h-screen bg-gray-50">
+  <!-- Header -->
+  <header class="border-b bg-white">
+    <div class="container flex flex-col sm:flex-row h-auto sm:h-16 items-start sm:items-center justify-between px-4 py-3 sm:py-0 gap-3 sm:gap-4">
+      <h1 class="text-xl sm:text-2xl font-bold">Dashboard</h1>
+      <div class="flex items-center gap-3 sm:gap-4 w-full sm:w-auto justify-between sm:justify-end">
+        <span class="text-xs sm:text-sm text-gray-600 truncate max-w-[150px] sm:max-w-none">{{ userEmail }}</span>
+        <button class="bg-black text-white px-3 py-1 rounded hover:bg-gray-800 transition-colors text-sm" (click)="logout()">Logout</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main -->
+  <main class="container px-4 py-8">
+    <!-- Stats -->
+    <div class="mb-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div class="p-4 border rounded shadow bg-white">
+        <p class="text-sm text-gray-600">Total Orders</p>
+        <p class="text-2xl font-bold">{{ stats.totalOrders }}</p>
+      </div>
+      <div class="p-4 border rounded shadow bg-white">
+        <p class="text-sm text-gray-600">Products</p>
+        <p class="text-2xl font-bold">{{ stats.totalProducts }}</p>
+      </div>
+      <div class="p-4 border rounded shadow bg-white">
+        <p class="text-sm text-gray-600">Revenue</p>
+        <p class="text-2xl font-bold">R$ {{ stats.totalRevenue | number:'1.2-2' }}</p>
+      </div>
+      <div class="p-4 border rounded shadow bg-white">
+        <p class="text-sm text-gray-600">Pending Orders</p>
+        <p class="text-2xl font-bold">{{ stats.pendingOrders }}</p>
+      </div>
+    </div>
+
+    <!-- Go to Products -->
+    <div class="mb-8">
+      <button class="w-full h-12 sm:h-16 bg-black hover:bg-gray-800 text-white rounded-lg transition-colors font-medium" (click)="goToProducts()">
+        Manage Products
+      </button>
+    </div>
+
+    <!-- Orders Section Container -->
+    <div class="border rounded-lg shadow bg-white p-6">
+      <!-- Section Title -->
+      <div class="mb-6">
+        <h2 class="text-xl font-semibold text-gray-800">Orders</h2>
+      </div>
+
+      <!-- Filters -->
+      <div class="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div>
+          <label class="text-sm font-medium block mb-1">Start Date</label>
+          <input type="date" [(ngModel)]="startDate" (change)="applyFilters()" class="w-full border p-2 rounded focus:ring-2 focus:ring-black focus:border-black" />
+        </div>
+        <div>
+          <label class="text-sm font-medium block mb-1">End Date</label>
+          <input type="date" [(ngModel)]="endDate" (change)="applyFilters()" class="w-full border p-2 rounded focus:ring-2 focus:ring-black focus:border-black" />
+        </div>
+        <div class="sm:col-span-2 lg:col-span-1">
+          <label class="text-sm font-medium block mb-1">Status</label>
+          <select [(ngModel)]="statusFilter" (change)="applyFilters()" class="w-full border p-2 rounded focus:ring-2 focus:ring-black focus:border-black">
+            <option value="all">All</option>
+            <option value="pending">Pending</option>
+            <option value="processing">Processing</option>
+            <option value="completed">Completed</option>
+            <option value="canceled">Canceled</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Orders Table -->
+      <div class="border rounded overflow-x-auto">
+        <table class="w-full text-sm min-w-[640px]">
+          <thead class="bg-gray-100 border-b">
+            <tr>
+              <th class="p-2 text-left whitespace-nowrap">ID</th>
+              <th class="p-2 text-center whitespace-nowrap">Date</th>
+              <th class="p-2 text-center whitespace-nowrap">Total</th>
+              <th class="p-2 text-center whitespace-nowrap">Status</th>
+              <th class="p-2 text-right whitespace-nowrap">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Loading State -->
+            <tr *ngIf="isLoadingOrders">
+              <td colspan="5" class="text-center p-8">
+                <div class="flex flex-col items-center gap-3">
+                  <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
+                  <p class="text-sm text-gray-600">Loading orders...</p>
+                </div>
+              </td>
+            </tr>
+            <!-- Empty State -->
+            <tr *ngIf="!isLoadingOrders && filteredOrders.length === 0">
+              <td colspan="5" class="text-center text-gray-500 p-4">
+                No orders found
+              </td>
+            </tr>
+            <!-- Orders Data -->
+            <tr *ngFor="let order of filteredOrders" class="border-t hover:bg-gray-50">
+              <td class="p-2 whitespace-nowrap font-medium">#{{ order.id }}</td>
+              <td class="p-2 whitespace-nowrap text-center">{{ order.createdAt | date:'dd/MM/yyyy' }}</td>
+              <td class="p-2 whitespace-nowrap text-center">R$ {{ order.total | number:'1.2-2' }}</td>
+              <td class="p-2 text-center">
+                <span
+                  class="px-2 py-1 rounded text-xs whitespace-nowrap inline-block"
+                  [ngClass]="{
+                    'bg-yellow-300': order.status === 'pending',
+                    'bg-blue-300': order.status === 'processing',
+                    'bg-green-300': order.status === 'completed',
+                    'bg-red-300': order.status === 'canceled'
+                  }"
+                >
+                  {{ order.status }}
+                </span>
+              </td>
+              <td class="p-2 text-right whitespace-nowrap">
+                <button
+                  (click)="viewOrderDetails(order)"
+                  class="inline-flex items-center justify-center p-2 text-black hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
+                  title="View order details"
+                  aria-label="View order details">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                  </svg>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <!-- Order Details Modal -->
+  <div *ngIf="showOrderModal && selectedOrder" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-xl font-bold">Order Details - #{{ selectedOrder.id }}</h2>
+        <button (click)="closeOrderModal()" class="text-gray-500 hover:text-gray-700">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+
+      <div class="space-y-4">
+        <!-- Order Info -->
+        <div class="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded">
+          <div>
+            <p class="text-sm text-gray-600">Order ID</p>
+            <p class="font-medium">#{{ selectedOrder.id }}</p>
+          </div>
+          <div>
+            <p class="text-sm text-gray-600">Date</p>
+            <p class="font-medium">{{ selectedOrder.createdAt | date:'dd/MM/yyyy HH:mm' }}</p>
+          </div>
+          <div>
+            <p class="text-sm text-gray-600">Status</p>
+            <span
+              class="px-2 py-1 rounded text-xs inline-block"
+              [ngClass]="{
+                'bg-yellow-300': selectedOrder.status === 'pending',
+                'bg-blue-300': selectedOrder.status === 'processing',
+                'bg-green-300': selectedOrder.status === 'completed',
+                'bg-red-300': selectedOrder.status === 'canceled'
+              }">
+              {{ selectedOrder.status }}
+            </span>
+          </div>
+          <div>
+            <p class="text-sm text-gray-600">Total</p>
+            <p class="font-bold text-lg">R$ {{ selectedOrder.total | number:'1.2-2' }}</p>
+          </div>
+        </div>
+
+        <!-- Order Items -->
+        <div>
+          <h3 class="font-semibold mb-3">Order Items</h3>
+          <div class="border rounded overflow-hidden">
+            <table class="w-full text-sm">
+              <thead class="bg-gray-100">
+                <tr>
+                  <th class="p-2 text-left">Product</th>
+                  <th class="p-2 text-center">Quantity</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let item of selectedOrder.items" class="border-t">
+                  <td class="p-2">{{ item.productName }}</td>
+                  <td class="p-2 text-center">{{ item.quantity }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex justify-end gap-3 pt-4">
+          <button (click)="closeOrderModal()" class="px-4 py-2 border border-black text-black rounded hover:bg-gray-100 transition-colors">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
