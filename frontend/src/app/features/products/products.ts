@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Product } from '../../shared/models/product.model';
+import { Page } from '../../shared/models/page.model';
 
 @Component({
   selector: 'app-products',
@@ -19,65 +20,17 @@ export class ProductsComponent implements OnInit {
   productForm: FormGroup;
   isLoadingProducts = true;
 
-  // Mock data for demonstration
-  private readonly mockProducts: Product[] = [
-    {
-      id: 1,
-      name: 'Laptop Dell XPS 15',
-      description: 'High-performance laptop with Intel i7 processor and 16GB RAM',
-      price: 6999.99,
-      stockQuantity: 15
-    },
-    {
-      id: 2,
-      name: 'Wireless Mouse Logitech MX',
-      description: 'Ergonomic wireless mouse with precision tracking',
-      price: 349.90,
-      stockQuantity: 50
-    },
-    {
-      id: 3,
-      name: 'Mechanical Keyboard RGB',
-      description: 'Gaming mechanical keyboard with RGB backlight and blue switches',
-      price: 499.00,
-      stockQuantity: 30
-    },
-    {
-      id: 4,
-      name: 'Monitor LG UltraWide 29"',
-      description: '29-inch ultrawide monitor with IPS panel and Full HD resolution',
-      price: 1899.00,
-      stockQuantity: 8
-    },
-    {
-      id: 5,
-      name: 'USB-C Hub 7-in-1',
-      description: 'Multiport adapter with HDMI, USB 3.0, SD card reader and USB-C PD',
-      price: 189.90,
-      stockQuantity: 100
-    },
-    {
-      id: 6,
-      name: 'Webcam Full HD 1080p',
-      description: 'HD webcam with auto focus and built-in microphone',
-      price: 299.00,
-      stockQuantity: 25
-    },
-    {
-      id: 7,
-      name: 'Headset Gamer HyperX',
-      description: 'Professional gaming headset with 7.1 surround sound',
-      price: 549.90,
-      stockQuantity: 20
-    },
-    {
-      id: 8,
-      name: 'External SSD 1TB Samsung',
-      description: 'Portable SSD with ultra-fast read/write speeds',
-      price: 899.00,
-      stockQuantity: 12
-    }
-  ];
+  // Pagination
+  currentPage = 0;
+  pageSize = 10;
+  totalPages = 0;
+  totalElements = 0;
+  pageSizeOptions = [5, 10, 25, 50];
+  sortBy = 'id';
+  sortDirection = 'asc';
+
+  // Expose Math to template
+  Math = Math;
 
   constructor(
     private readonly productService: ProductService,
@@ -103,17 +56,19 @@ export class ProductsComponent implements OnInit {
 
   loadProducts() {
     this.isLoadingProducts = true;
-    this.productService.getAll().subscribe({
-      next: (data) => {
+    this.productService.getAllPaginated(this.currentPage, this.pageSize, this.sortBy, this.sortDirection).subscribe({
+      next: (data: Page<Product>) => {
         setTimeout(() => {
-          this.products = data && data.length > 0 ? data : this.mockProducts;
+          this.products = data.content;
+          this.totalPages = data.totalPages;
+          this.totalElements = data.totalElements;
           this.isLoadingProducts = false;
         }, 800);
       },
       error: (err) => {
-        console.error('Error loading products from API, using mock data:', err);
+        console.error('Error loading products from API:', err);
         setTimeout(() => {
-          this.products = this.mockProducts;
+          this.products = [];
           this.isLoadingProducts = false;
         }, 800);
       },
@@ -220,5 +175,37 @@ export class ProductsComponent implements OnInit {
   formatPrice(value: number): string {
     const centavos = Math.round(value * 100);
     return this.formatCurrency(centavos);
+  }
+
+  // Pagination methods
+  onPageChange(page: number) {
+    if (page >= 0 && page < this.totalPages) {
+      this.currentPage = page;
+      this.loadProducts();
+    }
+  }
+
+  onPageSizeChange(event: Event) {
+    const select = event.target as HTMLSelectElement;
+    this.pageSize = parseInt(select.value, 10);
+    this.currentPage = 0; // Reset to first page
+    this.loadProducts();
+  }
+
+  get pages(): number[] {
+    return Array.from({ length: this.totalPages }, (_, i) => i);
+  }
+
+  get visiblePages(): number[] {
+    const maxVisible = 5;
+    const half = Math.floor(maxVisible / 2);
+    let start = Math.max(0, this.currentPage - half);
+    let end = Math.min(this.totalPages, start + maxVisible);
+
+    if (end - start < maxVisible) {
+      start = Math.max(0, end - maxVisible);
+    }
+
+    return Array.from({ length: end - start }, (_, i) => start + i);
   }
 }

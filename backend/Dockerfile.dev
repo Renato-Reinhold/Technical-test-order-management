@@ -1,0 +1,21 @@
+# Dockerfile para desenvolvimento com hot reload
+FROM gradle:8.5-jdk17
+
+WORKDIR /app
+
+# Copy Gradle configuration
+COPY build.gradle settings.gradle gradlew ./
+COPY gradle gradle/
+
+# Download dependencies
+RUN gradle build -x test --no-daemon || true
+
+# Copy source code
+COPY src src/
+
+# Expose ports
+EXPOSE 8080
+EXPOSE 35729
+
+# Run with hot reload enabled
+ENTRYPOINT ["gradle", "bootRun", "--no-daemon"]

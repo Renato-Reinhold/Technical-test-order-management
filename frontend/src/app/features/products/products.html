@@ -81,6 +81,49 @@
     </table>
   </div>
 
+  <!-- Pagination Controls -->
+  <div *ngIf="!isLoadingProducts && products.length > 0" class="mt-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+    <!-- Page Size Selector -->
+    <div class="flex items-center gap-2">
+      <label class="text-sm text-gray-600">Items per page:</label>
+      <select (change)="onPageSizeChange($event)" [value]="pageSize" class="border rounded p-1 text-sm focus:ring-2 focus:ring-black focus:border-black">
+        <option *ngFor="let size of pageSizeOptions" [value]="size">{{ size }}</option>
+      </select>
+      <span class="text-sm text-gray-600 ml-2">
+        Showing {{ currentPage * pageSize + 1 }} to {{ Math.min((currentPage + 1) * pageSize, totalElements) }} of {{ totalElements }}
+      </span>
+    </div>
+
+    <!-- Page Navigation -->
+    <div class="flex items-center gap-2">
+      <button
+        (click)="onPageChange(currentPage - 1)"
+        [disabled]="currentPage === 0"
+        class="px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        title="Previous page">
+        ‹
+      </button>
+
+      <button
+        *ngFor="let page of visiblePages"
+        (click)="onPageChange(page)"
+        [class.bg-black]="page === currentPage"
+        [class.text-white]="page === currentPage"
+        [class.hover:bg-gray-100]="page !== currentPage"
+        class="px-3 py-1 border rounded transition-colors">
+        {{ page + 1 }}
+      </button>
+
+      <button
+        (click)="onPageChange(currentPage + 1)"
+        [disabled]="currentPage >= totalPages - 1"
+        class="px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        title="Next page">
+        ›
+      </button>
+    </div>
+  </div>
+
   <!-- Modal for Add/Edit Product -->
   <div *ngIf="showModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
     <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">

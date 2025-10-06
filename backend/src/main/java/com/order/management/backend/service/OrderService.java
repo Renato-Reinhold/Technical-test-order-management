@@ -6,6 +6,10 @@ import com.order.management.backend.model.OrderStatus;
 import com.order.management.backend.model.Product;
 import com.order.management.backend.repository.OrderRepository;
 import com.order.management.backend.repository.ProductRepository;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -23,6 +27,7 @@ public class OrderService {
         this.productRepository = productRepository;
     }
 
+    @CacheEvict(value = {"orders", "ordersByStatus"}, allEntries = true)
     public Order createOrder(List<OrderItem> items) {
         Order order = new Order();
         order.setCreatedAt(LocalDateTime.now());
@@ -42,15 +47,22 @@ public class OrderService {
         return orderRepository.save(order);
     }
 
+    @Cacheable(value = "orders")
     public List<Order> getAllOrders() {
         return orderRepository.findAll();
     }
 
+    public Page<Order> getAllOrdersPaginated(Pageable pageable) {
+        return orderRepository.findAll(pageable);
+    }
+
+    @Cacheable(value = "order", key = "#id")
     public Order getOrderById(Long id) {
         return orderRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Order not found with id: " + id));
     }
 
+    @CacheEvict(value = {"orders", "order", "ordersByStatus"}, allEntries = true)
     public Order updateOrderStatus(Long id, OrderStatus status) {
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Order not found with id: " + id));
@@ -59,6 +71,7 @@ public class OrderService {
         return orderRepository.save(order);
     }
 
+    @Cacheable(value = "ordersByStatus", key = "#status")
     public List<Order> getOrdersByStatus(OrderStatus status) {
         return orderRepository.findByStatus(status);
     }

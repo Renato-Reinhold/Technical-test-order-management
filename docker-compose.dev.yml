@@ -1,0 +1,79 @@
+version: '3.8'
+
+# Docker Compose para DESENVOLVIMENTO LOCAL
+# Este arquivo permite hot reload no frontend e backend
+
+services:
+  # PostgreSQL Database (mesmo para dev)
+  postgres:
+    image: postgres:16-alpine
+    container_name: order-management-db-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ordermanagement
+      POSTGRES_USER: orderuser
+      POSTGRES_PASSWORD: orderpass123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+    networks:
+      - order-management-network-dev
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U orderuser -d ordermanagement"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Spring Boot Backend (modo desenvolvimento)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: order-management-backend-dev
+    restart: unless-stopped
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/ordermanagement
+      SPRING_DATASOURCE_USERNAME: orderuser
+      SPRING_DATASOURCE_PASSWORD: orderpass123
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_SHOW_SQL: "true"
+      SPRING_DEVTOOLS_RESTART_ENABLED: "true"
+    ports:
+      - "8080:8080"
+      - "35729:35729"  # LiveReload port
+    volumes:
+      - ./backend/src:/app/src:ro  # Hot reload
+      - ./backend/build.gradle:/app/build.gradle:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - order-management-network-dev
+
+  # Angular Frontend (modo desenvolvimento)
+  frontend:
+    image: node:20-alpine
+    container_name: order-management-frontend-dev
+    restart: unless-stopped
+    working_dir: /app
+    command: sh -c "npm install && npm start -- --host 0.0.0.0"
+    ports:
+      - "4200:4200"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules  # Prevent overwriting node_modules
+    depends_on:
+      - backend
+    networks:
+      - order-management-network-dev
+    environment:
+      - NODE_ENV=development
+
+volumes:
+  postgres_data_dev:
+    driver: local
+
+networks:
+  order-management-network-dev:
+    driver: bridge

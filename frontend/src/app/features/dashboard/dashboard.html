@@ -32,22 +32,73 @@
       </div>
     </div>
 
-    <!-- Go to Products -->
-    <div class="mb-8">
+    <!-- Action Buttons -->
+    <div class="mb-8 grid gap-4 sm:grid-cols-2">
       <button class="w-full h-12 sm:h-16 bg-black hover:bg-gray-800 text-white rounded-lg transition-colors font-medium" (click)="goToProducts()">
         Manage Products
+      </button>
+      <button class="w-full h-12 sm:h-16 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors font-medium flex items-center justify-center gap-2" (click)="goToCreateOrder()">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+        </svg>
+        Create New Order
       </button>
     </div>
 
     <!-- Orders Section Container -->
     <div class="border rounded-lg shadow bg-white p-6">
-      <!-- Section Title -->
-      <div class="mb-6">
+      <!-- Section Title with Auto-Refresh Controls -->
+      <div class="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <h2 class="text-xl font-semibold text-gray-800">Orders</h2>
+
+        <!-- Auto-Refresh Controls -->
+        <div class="flex items-center gap-3 flex-wrap">
+          <!-- Last Refresh Time -->
+          <span *ngIf="lastRefreshTime" class="text-xs text-gray-500">
+            Last update: {{ lastRefreshTime | date:'HH:mm:ss' }}
+          </span>
+
+          <!-- Auto-Refresh Toggle -->
+          <button
+            (click)="toggleAutoRefresh()"
+            [class.bg-green-100]="autoRefreshEnabled"
+            [class.text-green-700]="autoRefreshEnabled"
+            [class.border-green-300]="autoRefreshEnabled"
+            [class.bg-gray-100]="!autoRefreshEnabled"
+            [class.text-gray-700]="!autoRefreshEnabled"
+            [class.border-gray-300]="!autoRefreshEnabled"
+            class="flex items-center gap-2 px-3 py-1 border rounded text-sm transition-colors hover:opacity-80"
+            title="{{ autoRefreshEnabled ? 'Auto-refresh ON' : 'Auto-refresh OFF' }}">
+            <svg class="w-4 h-4" [class.animate-spin]="autoRefreshEnabled" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+            </svg>
+            <span>{{ autoRefreshEnabled ? 'Auto (' + nextRefreshIn + 's)' : 'Auto OFF' }}</span>
+          </button>
+
+          <!-- Manual Refresh Button -->
+          <button
+            (click)="manualRefresh()"
+            class="flex items-center gap-2 px-3 py-1 bg-black text-white rounded text-sm hover:bg-gray-800 transition-colors"
+            title="Refresh now">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+            </svg>
+            <span>Refresh</span>
+          </button>
+        </div>
       </div>
 
       <!-- Filters -->
-      <div class="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div class="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div>
+          <label class="text-sm font-medium block mb-1">Order ID</label>
+          <input
+            type="number"
+            [(ngModel)]="idFilter"
+            (input)="applyFilters()"
+            placeholder="Search by ID"
+            class="w-full border p-2 rounded focus:ring-2 focus:ring-black focus:border-black" />
+        </div>
         <div>
           <label class="text-sm font-medium block mb-1">Start Date</label>
           <input type="date" [(ngModel)]="startDate" (change)="applyFilters()" class="w-full border p-2 rounded focus:ring-2 focus:ring-black focus:border-black" />
@@ -56,7 +107,7 @@
           <label class="text-sm font-medium block mb-1">End Date</label>
           <input type="date" [(ngModel)]="endDate" (change)="applyFilters()" class="w-full border p-2 rounded focus:ring-2 focus:ring-black focus:border-black" />
         </div>
-        <div class="sm:col-span-2 lg:col-span-1">
+        <div>
           <label class="text-sm font-medium block mb-1">Status</label>
           <select [(ngModel)]="statusFilter" (change)="applyFilters()" class="w-full border p-2 rounded focus:ring-2 focus:ring-black focus:border-black">
             <option value="all">All</option>
@@ -129,6 +180,49 @@
             </tr>
           </tbody>
         </table>
+      </div>
+
+      <!-- Pagination Controls -->
+      <div *ngIf="!isLoadingOrders && filteredOrders.length > 0" class="mt-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <!-- Page Size Selector -->
+        <div class="flex items-center gap-2">
+          <label class="text-sm text-gray-600">Items per page:</label>
+          <select (change)="onPageSizeChange($event)" [value]="pageSize" class="border rounded p-1 text-sm focus:ring-2 focus:ring-black focus:border-black">
+            <option *ngFor="let size of pageSizeOptions" [value]="size">{{ size }}</option>
+          </select>
+          <span class="text-sm text-gray-600 ml-2">
+            Showing {{ currentPage * pageSize + 1 }} to {{ Math.min((currentPage + 1) * pageSize, totalElements) }} of {{ totalElements }}
+          </span>
+        </div>
+
+        <!-- Page Navigation -->
+        <div class="flex items-center gap-2">
+          <button
+            (click)="onPageChange(currentPage - 1)"
+            [disabled]="currentPage === 0"
+            class="px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            title="Previous page">
+            ‹
+          </button>
+
+          <button
+            *ngFor="let page of visiblePages"
+            (click)="onPageChange(page)"
+            [class.bg-black]="page === currentPage"
+            [class.text-white]="page === currentPage"
+            [class.hover:bg-gray-100]="page !== currentPage"
+            class="px-3 py-1 border rounded transition-colors">
+            {{ page + 1 }}
+          </button>
+
+          <button
+            (click)="onPageChange(currentPage + 1)"
+            [disabled]="currentPage >= totalPages - 1"
+            class="px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            title="Next page">
+            ›
+          </button>
+        </div>
       </div>
     </div>
   </main>

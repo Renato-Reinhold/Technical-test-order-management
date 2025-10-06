@@ -1,34 +1,18 @@
-package com.order.management.backend.model;
+package com.order.management.backend.dto;
 
-import jakarta.persistence.*;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
 import java.math.BigDecimal;
 
-@Entity
-@Table(name = "products")
-public class Product {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+public class ProductResponseDTO {
     private Long id;
-
-    @NotBlank
     private String name;
-
     private String description;
-
-    @Min(0)
-    @Column(precision = 10, scale = 2)
     private BigDecimal price;
-
-    @Min(0)
-    @Column(name = "stock_quantity")
     private Integer stockQuantity;
 
-    public Product() {}
+    public ProductResponseDTO() {}
 
-    public Product(String name, String description, BigDecimal price, Integer stockQuantity) {
+    public ProductResponseDTO(Long id, String name, String description, BigDecimal price, Integer stockQuantity) {
+        this.id = id;
         this.name = name;
         this.description = description;
         this.price = price;

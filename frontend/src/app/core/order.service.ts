@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { Order, OrderStatus } from '../shared/models/order.model';
+import { OrderStatus, OrderRequest, OrderResponse } from '../shared/models/order.model';
+import { Page } from '../shared/models/page.model';
 
 @Injectable({
   providedIn: 'root'
@@ -11,23 +12,32 @@ export class OrderService {
 
   constructor(private http: HttpClient) {}
 
-  getAll(): Observable<Order[]> {
-    return this.http.get<Order[]>(this.apiUrl);
+  getAll(): Observable<OrderResponse[]> {
+    return this.http.get<OrderResponse[]>(this.apiUrl);
   }
 
-  getById(id: number): Observable<Order> {
-    return this.http.get<Order>(`${this.apiUrl}/${id}`);
+  getAllPaginated(page: number = 0, size: number = 10, sortBy: string = 'id', sortDirection: string = 'desc'): Observable<Page<OrderResponse>> {
+    let params = new HttpParams()
+      .set('page', page.toString())
+      .set('size', size.toString())
+      .set('sortBy', sortBy)
+      .set('sortDirection', sortDirection);
+    return this.http.get<Page<OrderResponse>>(this.apiUrl, { params });
   }
 
-  create(order: Order): Observable<Order> {
-    return this.http.post<Order>(this.apiUrl, order);
+  getById(id: number): Observable<OrderResponse> {
+    return this.http.get<OrderResponse>(`${this.apiUrl}/${id}`);
   }
 
-  updateStatus(id: number, status: OrderStatus): Observable<Order> {
-    return this.http.put<Order>(`${this.apiUrl}/${id}/status?status=${status}`, {});
+  create(order: OrderRequest): Observable<OrderResponse> {
+    return this.http.post<OrderResponse>(this.apiUrl, order);
   }
 
-  getByStatus(status: OrderStatus): Observable<Order[]> {
-    return this.http.get<Order[]>(`${this.apiUrl}/status/${status}`);
+  updateStatus(id: number, status: OrderStatus): Observable<OrderResponse> {
+    return this.http.patch<OrderResponse>(`${this.apiUrl}/${id}/status?status=${status}`, {});
+  }
+
+  getByStatus(status: OrderStatus): Observable<OrderResponse[]> {
+    return this.http.get<OrderResponse[]>(`${this.apiUrl}/status/${status}`);
   }
 }
