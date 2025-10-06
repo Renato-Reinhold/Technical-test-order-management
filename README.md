@@ -129,11 +129,10 @@ docker-compose up --build
 - ✅ Validação de dados e estoque
 
 ### Infraestrutura e DevOps
-- ✅ API RESTful documentada (Swagger/OpenAPI 3.0)
-- ✅ Cache com Redis (performance 6.8x mais rápida)
+- ✅ API RESTful documentada (Swagger)
+- ✅ Cache com Redis
 - ✅ Dockerização completa (4 containers)
 - ✅ Migrations automáticas com Flyway
-- ✅ Testes unitários e de integração (69 testes, 95% sucesso)
 
 ## 🗄️ Banco de Dados
 
@@ -212,31 +211,6 @@ O projeto utiliza **Redis** para cache de consultas frequentes, melhorando signi
 | `orders` | 5 min | Lista de pedidos |
 | `order` | 5 min | Pedido individual |
 | `ordersByStatus` | 3 min | Pedidos por status |
-
-### Verificar Cache
-
-```bash
-# Conectar ao Redis
-docker exec -it order-management-redis redis-cli
-
-# Listar todas as chaves
-KEYS *
-
-# Ver TTL de uma chave
-TTL "order-mgmt:products::SimpleKey []"
-
-# Ver conteúdo
-GET "order-mgmt:products::SimpleKey []"
-```
-
-### Invalidação
-
-O cache é **automaticamente invalidado** quando:
-- Produto criado/atualizado/deletado → Limpa cache de produtos
-- Pedido criado/status alterado → Limpa cache de pedidos
-- Scheduler processa pedidos → Limpa todos os caches
-
-Para mais detalhes, consulte: **[REDIS_CACHE.md](./REDIS_CACHE.md)**
 
 ---
 
