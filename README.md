@@ -91,10 +91,7 @@ Technical-test-order-management/
 │   │   └── test/        # Testes unitários e integração
 │   ├── build.gradle
 │   └── Dockerfile
-├── docker-compose.yml    # Orquestração dos serviços
-├── TESTS.md             # Documentação dos testes
-├── REDIS_CACHE.md       # Documentação do cache Redis
-└── OPENAPI_SWAGGER.md   # Documentação da API
+└── docker-compose.yml    # Orquestração dos serviços
 ```
 
 ## Desenvolvimento Local
